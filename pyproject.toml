@@ -1,0 +1,28 @@
+[project]
+name = "lacrei-consultasmedicas-api"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Alisson Costa",email = "93224346+AllissonCosta@users.noreply.github.com"}
+]
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "django (>=5.2.8,<6.0.0)",
+    "djangorestframework (>=3.16.1,<4.0.0)",
+    "psycopg2-binary (>=2.9.11,<3.0.0)",
+    "django-filter (>=25.2,<26.0)",
+    "django-cors-headers (>=4.9.0,<5.0.0)",
+    "djangorestframework-simplejwt (>=5.5.1,<6.0.0)",
+    "dj-database-url (>=3.0.1,<4.0.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
+
+[dependency-groups]
+dev = [
+    "pytest-django (>=4.11.1,<5.0.0)"
+]

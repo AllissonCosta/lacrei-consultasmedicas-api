@@ -1,0 +1,31 @@
+
+
+services:
+  # Serviço 1: O Banco de Dados
+  db:
+    image: postgres:15-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/ # Salva os dados fora do container (persistência)
+    environment:
+      - POSTGRES_DB=lacrei_db
+      - POSTGRES_USER=lacrei_user
+      - POSTGRES_PASSWORD=lacrei_pass
+
+  # Serviço 2: Sua API Django
+  web:
+    build: . # Constrói usando o Dockerfile da pasta atual
+    command: bash -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - .:/app # Sincroniza sua pasta local com o container (Hot-reload: mudou código aqui, muda lá)
+    ports:
+      - "8000:8000" # Porta do PC : Porta do Container
+    environment:
+      # Aqui conectamos a API ao Banco 'db'
+      - DATABASE_URL=postgres://lacrei_user:lacrei_pass@db:5432/lacrei_db
+      - SECRET_KEY=segredo-super-secreto-do-docker
+      - DEBUG=True
+    depends_on:
+      - db # Só inicia depois que o banco iniciar
+
+volumes:
+  postgres_data:
