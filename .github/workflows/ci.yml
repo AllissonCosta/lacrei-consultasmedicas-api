@@ -20,7 +20,6 @@ jobs:
           POSTGRES_PASSWORD: lacrei_pass
         ports:
           - 5432:5432
-        # Espera o banco estar pronto antes de continuar
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -28,29 +27,23 @@ jobs:
           --health-retries 5
 
     steps:
-    # Baixa o código
     - uses: actions/checkout@v3
 
-    # Instala o Python
     - name: Set up Python 3.13
       uses: actions/setup-python@v4
       with:
         python-version: "3.13"
 
-    # Instala o Poetry
     - name: Install Poetry
       run: |
         curl -sSL https://install.python-poetry.org | python3 -
         echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-    # Instala dependências (cache para ser mais rápido nas próximas vezes)
     - name: Install Dependencies
       run: poetry install --no-interaction --no-root
 
-    # Roda os Testes
     - name: Run Tests
       env:
-        # passando as credenciais do banco temporário criado lá em cima
         DATABASE_URL: postgres://lacrei_user:lacrei_pass@localhost:5432/lacrei_db
         SECRET_KEY: 'secret-key-de-teste-ci'
         DEBUG: 'True'
@@ -62,56 +55,45 @@ jobs:
 
 
   deploy:
-    # Só roda se o push for para a branch principal (main ou master)
     if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
-    needs: test # Só roda o deploy se o job 'test' passar
+    needs: test 
     runs-on: ubuntu-latest
     
-    
-
     steps:
     - name: Checkout Code
       uses: actions/checkout@v3
+
+    # PASSO REORDENADO: Cria o ZIP do código (necessário antes do S3 upload)
+    - name: Create ZIP Deployment Package
+      run: |
+        zip -r application.zip . -x "*.git*" "test_*.py" "*.DS_Store" "*__pycache__*" "*.venv*" "*.github*" "db.sqlite3"
 
     # Configura as credenciais da AWS
     - name: Configure AWS Credentials
       uses: aws-actions/configure-aws-credentials@v1
       with:
-        # Pega as Secrets que configurou no GitHub
         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ secrets.AWS_REGION }} # Ex: us-east-1 - da a aws que esta usando
+        aws-region: ${{ secrets.AWS_REGION }}
 
-
-
-    # Faz o Deploy para o Elastic Beanstalk
+    # 1. Faz o Upload do pacote ZIP para o S3
     - name: Upload Deployment Package to S3
       run: |
-      aws s3 cp application.zip s3://elasticbeanstalk-us-east-1-770502889489/versions/${{ github.sha }}.zip
-      env:
-      AWS_REGION: ${{ secrets.AWS_REGION }}
+        # ATENÇÃO: Se o nome do seu bucket S3 for diferente, mude aqui.
+        aws s3 cp application.zip s3://elasticbeanstalk-us-east-1-770502889489/versions/${{ github.sha }}.zip
 
+    # 2. Cria a nova versão da aplicação no Elastic Beanstalk
     - name: Create Elastic Beanstalk Application Version
       run: |
-      --application-name lacrei-api \
-      --version-label ${{ github.sha }} \
-      --source-bundle S3Bucket="elasticbeanstalk-us-east-1-770502889489",S3Key="versions/${{ github.sha }}.zip"
-      env:
-      AWS_REGION: ${{ secrets.AWS_REGION }}
+        aws elasticbeanstalk create-application-version \
+          --application-name lacrei-api \
+          --version-label ${{ github.sha }} \
+          --source-bundle S3Bucket="elasticbeanstalk-us-east-1-770502889489",S3Key="versions/${{ github.sha }}.zip"
 
+    # 3. Faz o Deploy (Atualiza o ambiente com a nova versão)
     - name: Deploy New Version to Environment
       run: |
-      --application-name lacrei-api \
-      --environment-name lacrei-api-env \
-      --version-label ${{ github.sha }}
-      env:
-        AWS_REGION: ${{ secrets.AWS_REGION }}
-
-
-
-
-    # Cria o ZIP do código para o Beanstalk
-    - name: Create ZIP Deployment Package
-      run: |
-        # Cria o pacote com os arquivos necessários, ignorando os de teste
-        zip -r application.zip . -x "*.git*" "test_*.py" "*.DS_Store" "*__pycache__*" "*.venv*" "*.github*" "db.sqlite3"
+        aws elasticbeanstalk update-environment \
+          --application-name lacrei-api \
+          --environment-name lacrei-api-env \
+          --version-label ${{ github.sha }}
