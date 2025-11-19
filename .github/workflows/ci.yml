@@ -1,0 +1,66 @@
+name: CI - Lacrei Saúde Consultas Médicas
+
+# Quando isso vai rodar?
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    # Criamos um banco de dados temporário dentro do GitHub Actions
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_DB: lacrei_db
+          POSTGRES_USER: lacrei_user
+          POSTGRES_PASSWORD: lacrei_pass
+        ports:
+          - 5432:5432
+        # Espera o banco estar pronto antes de continuar
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    # 1. Baixa seu código
+    - uses: actions/checkout@v3
+
+    # 2. Instala o Python
+    - name: Set up Python 3.13
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.13"
+
+    # 3. Instala o Poetry
+    - name: Install Poetry
+      run: |
+        curl -sSL https://install.python-poetry.org | python3 -
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+    # 4. Instala dependências (cache para ser mais rápido nas próximas vezes)
+    - name: Install Dependencies
+      run: poetry install --no-interaction --no-root
+
+    # 5. Roda os Testes
+    - name: Run Tests
+      env:
+        # Passamos as credenciais do banco temporário criado lá em cima
+        DATABASE_URL: postgres://lacrei_user:lacrei_pass@localhost:5432/lacrei_db
+        SECRET_KEY: 'secret-key-de-teste-ci'
+        DEBUG: 'True'
+      run: |
+        poetry run python manage.py test
+
+    # 6. (Opcional) Verifica qualidade de código (Lint)
+    # Se quiser ativar, descomente as linhas abaixo
+    # - name: Lint with Flake8
+    #   run: |
+    #     poetry add flake8
+    #     poetry run flake8 .
