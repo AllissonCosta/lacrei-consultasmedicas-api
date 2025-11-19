@@ -82,15 +82,33 @@ jobs:
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         aws-region: ${{ secrets.AWS_REGION }} # Ex: us-east-1 - da a aws que esta usando
 
+
+
     # Faz o Deploy para o Elastic Beanstalk
-    - name: Deploy to Elastic Beanstalk
-      uses: aws/elastic-beanstalk-deploy@v1
-      
-      with:
-        application_name: lacreiconsultasmedicasapi # O nome que deu ao aplicativo no EB
-        environment_name: Lacreiconsultasmedicasapi-env # O nome do ambiente que o EB está criando
-        # O nome do arquivo zip que o EB espera. O default é app.zip
-        deployment_package: application.zip 
+    - name: Upload Deployment Package to S3
+      run: |
+      aws s3 cp application.zip s3://elasticbeanstalk-us-east-1-770502889489/versions/${{ github.sha }}.zip
+      env:
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+
+    - name: Create Elastic Beanstalk Application Version
+      run: |
+      --application-name lacrei-api \
+      --version-label ${{ github.sha }} \
+      --source-bundle S3Bucket="elasticbeanstalk-us-east-1-770502889489",S3Key="versions/${{ github.sha }}.zip"
+      env:
+      AWS_REGION: ${{ secrets.AWS_REGION }}
+
+    - name: Deploy New Version to Environment
+      run: |
+      --application-name lacrei-api \
+      --environment-name lacrei-api-env \
+      --version-label ${{ github.sha }}
+      env:
+        AWS_REGION: ${{ secrets.AWS_REGION }}
+
+
+
 
     # Cria o ZIP do código para o Beanstalk
     - name: Create ZIP Deployment Package
