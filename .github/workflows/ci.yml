@@ -84,21 +84,8 @@ jobs:
 
     # Faz o Deploy para o Elastic Beanstalk
     - name: Deploy to Elastic Beanstalk
-      run: |
-        pip install awsebcli --user
-
-        aws elasticbeanstalk create-application-version \
-        --application-name lacrei-api \
-         --version-label ${{ github.sha }} \
-         --source-bundle
-         S3Bucket="elasticbeanstalk-us-east-1-770502889489
-         ,S3Key="application.zip" \
-         --region us-east-1
-
-        aws elasticbeanstalk update-environment \
-        --environment-name lacrei-api-env \
-        --version-label ${{ github.sha }} \
-        --region us-east-1
+      uses: aws/elastic-beanstalk-deploy@v1
+      
       with:
         application_name: lacreiconsultasmedicasapi # O nome que deu ao aplicativo no EB
         environment_name: Lacreiconsultasmedicasapi-env # O nome do ambiente que o EB está criando
