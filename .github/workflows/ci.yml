@@ -1,6 +1,5 @@
-name: CI - Lacrei Saúde Consultas Médicas
+name: CI - Lacrei Saúde Consultas Médicas - Api
 
-# Quando isso vai rodar?
 on:
   push:
     branches: [ "main", "master" ]
@@ -11,7 +10,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
-    # Criamos um banco de dados temporário dentro do GitHub Actions
+    # Cria um banco de dados temporário dentro do GitHub Actions
     services:
       postgres:
         image: postgres:15-alpine
@@ -29,38 +28,71 @@ jobs:
           --health-retries 5
 
     steps:
-    # 1. Baixa seu código
+    # Baixa o código
     - uses: actions/checkout@v3
 
-    # 2. Instala o Python
+    # Instala o Python
     - name: Set up Python 3.13
       uses: actions/setup-python@v4
       with:
         python-version: "3.13"
 
-    # 3. Instala o Poetry
+    # Instala o Poetry
     - name: Install Poetry
       run: |
         curl -sSL https://install.python-poetry.org | python3 -
         echo "$HOME/.local/bin" >> $GITHUB_PATH
 
-    # 4. Instala dependências (cache para ser mais rápido nas próximas vezes)
+    # Instala dependências (cache para ser mais rápido nas próximas vezes)
     - name: Install Dependencies
       run: poetry install --no-interaction --no-root
 
-    # 5. Roda os Testes
+    # Roda os Testes
     - name: Run Tests
       env:
-        # Passamos as credenciais do banco temporário criado lá em cima
+        # passando as credenciais do banco temporário criado lá em cima
         DATABASE_URL: postgres://lacrei_user:lacrei_pass@localhost:5432/lacrei_db
         SECRET_KEY: 'secret-key-de-teste-ci'
         DEBUG: 'True'
       run: |
         poetry run python manage.py test
 
-    # 6. (Opcional) Verifica qualidade de código (Lint)
-    # Se quiser ativar, descomente as linhas abaixo
-    # - name: Lint with Flake8
-    #   run: |
-    #     poetry add flake8
-    #     poetry run flake8 .
+
+  # --------------------------------------------------
+
+
+  deploy:
+    # Só roda se o push for para a branch principal (main ou master)
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    needs: test # Só roda o deploy se o job 'test' passar
+    runs-on: ubuntu-latest
+    
+    
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    # Configura as credenciais da AWS
+    - name: Configure AWS Credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        # Pega as Secrets que configurou no GitHub
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ secrets.AWS_REGION }} # Ex: us-east-1 - da a aws que esta usando
+
+    # Faz o Deploy para o Elastic Beanstalk
+    - name: Deploy to Elastic Beanstalk
+      uses: aws-actions/elastic-beanstalk-deploy@v1
+      with:
+        application_name: lacreiconsultasmedicasapi # O nome que deu ao aplicativo no EB
+        environment_name: Lacreiconsultasmedicasapi-env # O nome do ambiente que o EB está criando
+        # O nome do arquivo zip que o EB espera. O default é app.zip
+        deployment_package: application.zip 
+
+    # Cria o ZIP do código para o Beanstalk
+    - name: Create ZIP Deployment Package
+      run: |
+        # Cria o pacote com os arquivos necessários, ignorando os de teste
+        zip -r application.zip . -x "*.git*" "test_*.py" "*.DS_Store" "*__pycache__*" "*.venv*" "*.github*" "db.sqlite3"

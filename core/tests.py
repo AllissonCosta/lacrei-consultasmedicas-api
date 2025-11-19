@@ -1,17 +1,15 @@
 from rest_framework.test import APITestCase
 from rest_framework import status
 from .models import Profissional, Consulta
-from django.contrib.auth.models import User # <--- Importamos o modelo de Usuário
+from django.contrib.auth.models import User # <--- Importando o modelo de Usuário
 
 class ProfissionalTests(APITestCase):
     
     def setUp(self):
-        # 1. CRIAR UM USUÁRIO DE TESTE
-        # Precisamos de alguém para "ser" o dono da requisição
+        # CRIANDO UM USUÁRIO DE TESTE
         self.user = User.objects.create_user(username='testuser', password='password123')
 
-        # 2. FORÇAR AUTENTICAÇÃO
-        # Aqui dizemos: "Client, aja como se o 'self.user' estivesse logado"
+        # FORÇAR AUTENTICAÇÃO
         self.client.force_authenticate(user=self.user)
 
         self.url_list = '/api/profissionais/'
@@ -48,16 +46,16 @@ class ProfissionalTests(APITestCase):
         
         response = self.client.post(self.url_list, dados_incompletos, format='json')
         
-        # Agora vai dar 400 (Bad Request) e não 401 (Unauthorized),
-        # porque o usuário está logado, mas mandou dados ruins.
+        # É pra retornar 400 (Bad Request) e não 401 (Unauthorized),
+        # porque o usuário está logado, mas mandou dados faltando.
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_unauthorized_access(self):
-        """Teste 4 (NOVO): Garante que quem NÃO tem login toma erro 401"""
+        """Teste 4 : Garante que quem NÃO tem login toma erro 401"""
         # Deslogamos o usuário forçadamente para este teste específico
         self.client.force_authenticate(user=None)
         
         response = self.client.get(self.url_list)
         
-        # Agora esperamos o 401!
+        # Para retornar o 401!
         self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)

@@ -21,10 +21,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
-# A SECRET_KEY agora tenta ler do ambiente. Se não achar, usa a insegura (só pra dev local)
+# Vai ler do ambiente. Se não achar, usa a insegura
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-chave-padrao-para-dev')
 
-# O DEBUG deve ser False em produção, mas True localmente
+# Meu alerta: O DEBUG deve ser False em produção, mas True localmente
 DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 
 ALLOWED_HOSTS = ['*'] # Permite que o Docker acesse a API
@@ -130,19 +130,19 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 REST_FRAMEWORK = {
-    # Configura o filtro global (que já fizemos antes)
+    # Configura o filtro global
     'DEFAULT_FILTER_BACKENDS': [
         'django_filters.rest_framework.DjangoFilterBackend'
     ],
     
-    # --- NOVO: Configuração de Autenticação ---
+    # --- Configuração de Autenticação ---
     
-    # 1. Define que usaremos JWT para ler o crachá
+    # 1. Define que usaremos JWT para ler a key
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
     ),
     
-    # 2. Define a permissão padrão: "Só entra quem estiver autenticado"
+    # 2. Define a permissão padrão: "obs: Só acessa quem estiver autenticado"
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     ),
@@ -178,5 +178,5 @@ LOGGING = {
     },
 }
 
-# Permitir que qualquer origem acesse sua API
+# Permitir que qualquer origem acesse a API
 CORS_ALLOW_ALL_ORIGINS = True
