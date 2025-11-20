@@ -79,21 +79,21 @@ jobs:
     # 1. Faz o Upload do pacote ZIP para o S3
     - name: Upload Deployment Package to S3
       run: |
-        # ATENÇÃO: Se o nome do seu bucket S3 for diferente, mude aqui.
+        # Usando o nome do bucket que você forneceu:
         aws s3 cp application.zip s3://elasticbeanstalk-us-east-1-770502889489/versions/${{ github.sha }}.zip
 
     # 2. Cria a nova versão da aplicação no Elastic Beanstalk
     - name: Create Elastic Beanstalk Application Version
       run: |
         aws elasticbeanstalk create-application-version \
-          --application-name lacrei-api \
+          --application-name lacreiconsultasmedicaapi \
           --version-label ${{ github.sha }} \
           --source-bundle S3Bucket="elasticbeanstalk-us-east-1-770502889489",S3Key="versions/${{ github.sha }}.zip"
 
-    # 3. Faz o Deploy
+    # 3. Faz o Deploy (Atualiza o ambiente com a nova versão)
     - name: Deploy New Version to Environment
       run: |
         aws elasticbeanstalk update-environment \
-          --application-name lacrei-api \
+          --application-name lacreiconsultasmedicaapi \
           --environment-name lacrei-api-env \
           --version-label ${{ github.sha }}
