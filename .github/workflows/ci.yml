@@ -63,7 +63,7 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v3
 
-    # PASSO REORDENADO: Cria o ZIP do código (necessário antes do S3 upload)
+    # Cria o ZIP do código (necessário antes do S3 upload)
     - name: Create ZIP Deployment Package
       run: |
         zip -r application.zip . -x "*.git*" "test_*.py" "*.DS_Store" "*__pycache__*" "*.venv*" "*.github*" "db.sqlite3"
@@ -90,7 +90,7 @@ jobs:
           --version-label ${{ github.sha }} \
           --source-bundle S3Bucket="elasticbeanstalk-us-east-1-770502889489",S3Key="versions/${{ github.sha }}.zip"
 
-    # 3. Faz o Deploy (Atualiza o ambiente com a nova versão)
+    # 3. Faz o Deploy
     - name: Deploy New Version to Environment
       run: |
         aws elasticbeanstalk update-environment \
