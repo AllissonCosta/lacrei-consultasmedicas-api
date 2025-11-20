@@ -13,8 +13,9 @@ services:
 
   # Serviço 2: API Django
   web:
-    build: . # Cria usando o Dockerfile da pasta atual
-    command: bash -c "python manage.py migrate && python manage.py runserver 0.0.0.0:8000"
+    build: .
+    # Gunicorn com 4 workers e rodando na porta 8000
+    command: poetry run gunicorn config.wsgi:application --bind 0.0.0.0:8000
     volumes:
       - .:/app # Sincroniza sua pasta local com o container
     ports:
