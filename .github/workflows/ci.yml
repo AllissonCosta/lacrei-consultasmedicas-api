@@ -95,5 +95,5 @@ jobs:
       run: |
         aws elasticbeanstalk update-environment \
           --application-name lacreiconsultasmedicaapi \
-          --environment-name lacrei-api-env \
+          --environment-name Lacreiconsultasmedicaapi-env \
           --version-label ${{ github.sha }}
